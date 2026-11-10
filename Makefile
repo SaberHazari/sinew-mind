@@ -2,7 +2,7 @@
 GCC = gcc-13
 
 # Libraries
-LIBS = 
+LIBS = -lm
 
 # Directories
 SRC_DIR = src
