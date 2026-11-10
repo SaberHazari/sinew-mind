@@ -24,14 +24,30 @@ SinewMind sm_alloc(u64 *layers, u64 layer_count) {
     return sm;
 }
 
-void sm_print_with(SinewMind *sm, const char *name) {
+void sm_random(SinewMind *sm, SM_Rng *rng, f64 lo, f64 hi) {
+    for(u64 i = 0; i < sm->count; ++i) {
+        matrix_random(&sm->weights[i], rng, lo, hi);
+        matrix_random(&sm->biases[i], rng, lo, hi);
+    }
+}
+
+void sm_forward_sigmoid(SinewMind *sm) {
+    for(u64 i = 0; i < sm->count; ++i) {
+        matrix_mul(&sm->activations[i + 1], &sm->activations[i], &sm->weights[i]);
+        matrix_add(&sm->activations[i + 1], &sm->biases[i]);
+        matrix_sigmoid(&sm->activations[i + 1]);
+    }
+}
+
+void sm_print(SinewMind *sm, const char *name) {
     char buffer[256];
     printf("%s = [\n", name);
     for(u64 i = 0; i < sm->count; ++i) {
         snprintf(buffer, sizeof(buffer), "weights[%lu]", i);
-        matrix_print_with(&sm->weights[i], buffer, 2);
+        matrix_print(&sm->weights[i], buffer, 2);
         snprintf(buffer, sizeof(buffer), "biases[%lu]", i);
-        matrix_print_with(&sm->biases[i], buffer, 2);
+        matrix_print(&sm->biases[i], buffer, 2);
     }
     printf("]\n");
 }
+

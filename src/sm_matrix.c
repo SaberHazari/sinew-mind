@@ -16,7 +16,7 @@ SM_Matrix matrix_alloc(u64 rows, u64 cols) {
     return mat;
 }
 
-void matrix_rng(SM_Matrix *mat, SM_Rng *rng, f64 lo, f64 hi) {
+void matrix_random(SM_Matrix *mat, SM_Rng *rng, f64 lo, f64 hi) {
     assert(lo < hi);
     if(lo >= hi) { lo = nextafter(hi, lo); }
 
@@ -88,7 +88,7 @@ void matrix_sigmoid(SM_Matrix *mat) {
     }
 }
 
-void matrix_print_with(SM_Matrix *mat, const char *name, u32 padding) {
+void matrix_print(SM_Matrix *mat, const char *name, u32 padding) {
     printf("%*s%s = [\n", padding, "", name);
     for(u64 i = 0; i < mat->rows; ++i) {
         printf("%*s", padding, "");

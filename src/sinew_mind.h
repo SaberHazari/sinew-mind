@@ -2,6 +2,7 @@
 #define SINEW_MIND_H
 
 #include "sm_utils.h"
+#include "sm_rng.h"
 #include "sm_matrix.h"
 
 #ifdef __cplusplus
@@ -16,7 +17,9 @@ typedef struct SinewMind {
 } SinewMind;
 
 SinewMind sm_alloc(u64 *layers, u64 layer_count);
-void sm_print_with(SinewMind *sm, const char *name);
+void sm_random(SinewMind *sm, SM_Rng *rng, f64 lo, f64 hi);
+void sm_forward_sigmoid(SinewMind *sm);
+void sm_print(SinewMind *sm, const char *name);
 
 #ifdef __cplusplus
 }
