@@ -16,9 +16,10 @@ typedef struct SinewMind {
     SM_Matrix *activations;
 } SinewMind;
 
-SinewMind sm_alloc(u64 *layers, u64 layer_count);
+SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activation);
 void sm_random(SinewMind *sm, SM_Rng *rng, f64 lo, f64 hi);
-void sm_forward_sigmoid(SinewMind *sm);
+void sm_forward(SinewMind *sm);
+f64 sm_cost(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to);
 void sm_print(SinewMind *sm, const char *name);
 
 #ifdef __cplusplus

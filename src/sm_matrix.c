@@ -3,14 +3,15 @@
 #include <assert.h>
 #include <stdio.h>
 
-SM_Matrix matrix_alloc(u64 rows, u64 cols) {
+SM_Matrix matrix_alloc(u64 rows, u64 cols, ActivationFn activation) {
     SM_Matrix mat;
+    mat.parent = NULL;
     mat.rows = rows;
     mat.cols = cols;
     mat.stride = cols;
     // I'm using malloc temporarily
     mat.data = malloc(rows * cols * sizeof(*mat.data));
-    mat.parent = NULL;
+    mat.activation = activation;
     assert(mat.data);
     
     return mat;
@@ -33,11 +34,12 @@ SM_Matrix matrix_subview(SM_Matrix *mat, u64 row_start, u64 row_count,
     assert(col_start <= mat->cols && col_count <= mat->cols - col_start);
 
     SM_Matrix sub;
+    sub.parent = mat;
     sub.rows = row_count;
     sub.cols = col_count;
     sub.stride = mat->stride;
     sub.data = mat->data + row_start * mat->stride + col_start;
-    sub.parent = mat;
+    sub.activation = NULL;
 
     return sub;
 }
@@ -80,10 +82,10 @@ void matrix_mul(SM_Matrix *dest, SM_Matrix *x, SM_Matrix *y) {
     }
 }
 
-void matrix_sigmoid(SM_Matrix *mat) {
+void matrix_activate(SM_Matrix *mat) {
     for(u64 i = 0; i < mat->rows; ++i) {
         for(u64 j = 0; j < mat->cols; ++j) {
-            matrix_pos_ptr_m(mat, i, j) = sigmoid_f64(matrix_pos_ptr_m(mat, i, j));
+            matrix_pos_ptr_m(mat, i, j) = mat->activation(matrix_pos_ptr_m(mat, i, j));
         }
     }
 }
