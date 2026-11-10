@@ -13,6 +13,8 @@ typedef double f64;
 
 typedef uintptr_t uptr;
 
+#define array_length_u64_m(arr) (u64)(sizeof((arr)) / sizeof((arr)[0]))
+
 static inline u64 rotate_left_u64(u64 x, u32 k) {
     k &= 63;
     return k ? (x << k) | (x >> (64 - k)) : x;

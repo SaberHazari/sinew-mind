@@ -88,15 +88,16 @@ void matrix_sigmoid(SM_Matrix *mat) {
     }
 }
 
-void matrix_print_with(SM_Matrix *mat, const char *name) {
-    printf("%s = [\n", name);
+void matrix_print_with(SM_Matrix *mat, const char *name, u32 padding) {
+    printf("%*s%s = [\n", padding, "", name);
     for(u64 i = 0; i < mat->rows; ++i) {
+        printf("%*s", padding, "");
         for(u64 j = 0; j < mat->cols; ++j) {
             printf("  %.5f", matrix_pos_ptr_m(mat, i, j));
         }
         printf("\n");
     }
-    printf("]\n");
+    printf("%*s]\n", padding, "");
 }
 
 void matrix_free(SM_Matrix *mat) {

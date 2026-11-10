@@ -29,8 +29,8 @@ DEBUG_DEPS = $(DEBUG_OBJS:%.o=%.d)
 RELEASE_DEPS = $(RELEASE_OBJS:%.o=%.d)
 
 # Binaries
-DEBUG_BIN = $(DEBUG_DIR)/thinker
-RELEASE_BIN = $(RELEASE_DIR)/thinker
+DEBUG_BIN = $(DEBUG_DIR)/sinew_mind
+RELEASE_BIN = $(RELEASE_DIR)/sinew_mind
 
 # Targets
 .PHONY: all run clean debug \
