@@ -27,7 +27,7 @@ int main(void) {
     matrix_print(&ti, "Input", 0);
     printf("\n--------------------------------------------\n\n");
 
-    u64 layers[] = {2 * BITS, 2 * BITS * BITS, 2 * BITS, BITS + 1};
+    u64 layers[] = {2 * BITS, 2 * BITS, BITS + 1};
     SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sigmoid_f64, sigmoid_diff_f64);
     sm_random(&sm, &rng, 0.0, 1.0);
     sm_print(&sm, "Initial Configuration");
@@ -44,27 +44,30 @@ int main(void) {
     sm_print(&sm, "Final Configuration");
     printf("\nFinal Cost = %.5f\n", sm_cost(&sm, &ti, &to));
 
-    f64 compare_data[to.rows * to.cols];
-    SM_Matrix compare = {
-        .rows = to.rows, 
-        .cols = to.cols, 
-        .stride = to.cols, 
-        .data = compare_data, 
-        .parent = NULL
-    };
+    u64 success = 0, failure = 0;
 
-    for(u64 s = 0; s < ti.rows; ++s) {
-        SM_Matrix x = matrix_row_view_m(ti, s, 1);
+    for(u64 x = 0; x < n; ++x) {
+        for(u64 y = 0; y < n; ++y) {
+            for(u64 j = 0; j < BITS; ++j) {
+                matrix_pos_m(sm.activations[0], 0, j) = (x >> j) & 1;
+                matrix_pos_m(sm.activations[0], 0, j + BITS) = (y >> j) & 1;
+            }
+            sm_forward(&sm);
 
-        matrix_copy_m(sm.activations[0], x);
-        sm_forward(&sm);
+            u64 out_z = 0;
+            u64 exp_z = x + y;
+            for(u64 j = 0; j < to.cols; ++j) {
+                u64 out_bit = matrix_pos_m(sm.activations[sm.count], 0, j) > 0.5;
+                out_z |= out_bit << j;
+            }
+            printf("%" PRIu64 " + %" PRIu64 " = %" PRIu64 ", Actual Output = %" PRIu64 "\n", x, y, exp_z, out_z);
 
-        for(u64 o = 0; o < to.cols; ++o) {
-            matrix_pos_m(compare, s, o) = matrix_pos_m(sm.activations[sm.count], s, o);
+            if(out_z == exp_z) { success++; }
+            else { failure++; }
         }
     }
-    matrix_print(&to, "Expected Output", 0);
-    matrix_print(&compare, "Actual Output", 0);
+
+    printf("Accuracy = %.5f\n", (f64)success / (success + failure));
 
     sm_free(&sm);
 
