@@ -1,4 +1,4 @@
-#include "sinew_mind.h"
+#include "core/sinew_mind.h"
 #include <stdio.h>
 
 f64 xor_train[] = {
@@ -34,7 +34,7 @@ int main(void) {
     printf("\nInitial Cost = %.5f\n", sm_cost(&sm, &ti, &to));
     printf("\n--------------------------------------------\n\n");
 
-    f64 learning_rate = 10.0;
+    f64 learning_rate = 1.0;
     f64 batch_size = ti.rows;
     for(u64 i = 0; i < 10 * 1000; ++i) {
         sm_backprop(&sm, &ti, &to);

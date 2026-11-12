@@ -18,7 +18,7 @@ DEBUG_FLAGS = $(COMMON_FLAGS) -g -O0
 RELEASE_FLAGS = $(COMMON_FLAGS) -O2
 
 # Sources
-SRCS = $(shell find $(SRC_DIR) -type f -name '*.c')
+SRCS = $(shell find $(SRC_DIR)/core -type f -name '*.c') $(SRC_DIR)/adder.c
 
 # Objects
 DEBUG_OBJS = $(patsubst $(SRC_DIR)/%.c, $(DEBUG_OBJ_DIR)/%.o, $(SRCS))
