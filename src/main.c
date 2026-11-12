@@ -10,7 +10,8 @@ f64 xor_train[] = {
 
 int main(void) {
     SM_Rng rng;
-    rng_seed(&rng);
+    u64 seed = rng_seed(&rng);
+    printf("\n\nSeed = %" PRIu64 "\n", seed);
 
     SM_Matrix td = {
         .rows = 4,
@@ -34,15 +35,17 @@ int main(void) {
     printf("\nInitial Cost = %.5f\n", sm_cost(&sm, &ti, &to));
     printf("\n--------------------------------------------\n\n");
 
-    f64 learning_rate = 1e-1;
+    f64 learning_rate = 10.0;
     f64 batch_size = ti.rows;
-    for(u64 i = 0; i < 5; ++i) {
+    for(u64 i = 0; i < 1000; ++i) {
         sm_backprop(&sm, &ti, &to);
         sm_step(&sm, learning_rate, batch_size);
     }
 
     sm_print(&sm, "Final Configuration");
     printf("\nFinal Cost = %.5f\n", sm_cost(&sm, &ti, &to));
+
+    
 
     return 0;
 }

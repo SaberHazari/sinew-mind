@@ -89,7 +89,7 @@ void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
 
     for(u64 s = 0; s < ti->rows; ++s) {
         SM_Matrix x = matrix_row_view_m(*ti, s, 1);
-        SM_Matrix y = matrix_col_view_m(*to, s, 1);
+        SM_Matrix y = matrix_row_view_m(*to, s, 1);
 
         matrix_copy_m(sm->activations[0], x);
         sm_forward(sm);
@@ -98,7 +98,7 @@ void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
         for(u64 o = 0; o < to->cols; ++o) {
             f64 final_activation_value = matrix_pos_m(sm->activations[sm->count], 0, o);
             f64 error = final_activation_value - matrix_pos_m(y, 0, o);
-            matrix_pos_ptr_m(final_delta, 0, 0) = error * sm->derivator(final_activation_value);
+            matrix_pos_ptr_m(final_delta, 0, o) = error * sm->derivator(final_activation_value);
         }
 
         for(u64 l = sm->count; l >= 1; --l) {
@@ -126,7 +126,7 @@ void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
                 for(u64 i = 0; i < weight->rows; ++i) {
                     f64 sum = 0.0;
                     for(u64 j = 0; j < weight->cols; ++j) {
-                        sum += matrix_pos_ptr_m(weight_grad, i, j) * matrix_pos_ptr_m(delta, 0, j);
+                        sum += matrix_pos_ptr_m(weight, i, j) * matrix_pos_ptr_m(delta, 0, j);
                     }
                     f64 prev_activation_value = matrix_pos_ptr_m(activation, 0, i);
                     matrix_pos_ptr_m(prev_delta, 0, i) = sum * sm->derivator(prev_activation_value);
