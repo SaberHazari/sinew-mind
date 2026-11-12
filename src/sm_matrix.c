@@ -11,7 +11,7 @@ static bool matrix_overlaps_(const SM_Matrix *x, const SM_Matrix *y) {
 }
 
 SM_Matrix matrix_alloc(u64 rows, u64 cols) {
-    assert(cols <= UINT64_MAX / rows);
+    assert(rows && cols && cols <= UINT64_MAX / rows);
 
     SM_Matrix mat;
     mat.parent = NULL;
@@ -50,10 +50,12 @@ SM_Matrix matrix_subview(SM_Matrix *mat, u64 row_start, u64 row_count,
     return sub;
 }
 
-void matrix_submat(SM_Matrix *sub, SM_Matrix *mat, u64 row_start, 
-    u64 col_start) {
-    assert(row_start <= mat->rows && sub->rows <= mat->rows - row_start);
-    assert(col_start <= mat->cols && sub->cols <= mat->cols - col_start);
+void matrix_submat(SM_Matrix *sub, SM_Matrix *mat, 
+    u64 row_start, u64 row_count, 
+    u64 col_start, u64 col_count) {
+    assert(row_start <= mat->rows && row_count <= mat->rows - row_start);
+    assert(col_start <= mat->cols && col_count <= mat->cols - col_start);
+    assert(sub->rows == row_count && sub->cols == col_count);
 
     for(u64 i = 0; i < sub->rows; ++i) {
         for(u64 j = 0; j < sub->cols; ++j) {

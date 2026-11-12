@@ -27,13 +27,22 @@ int main(void) {
     printf("\n--------------------------------------------\n\n");
 
     u64 layers[] = {2, 2, 1};
-    SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sigmoid_f64);
+    SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sigmoid_f64, 
+        sigmoid_diff_f64);
     sm_random(&sm, &rng, 0.0, 1.0);
     sm_print(&sm, "Initial Configuration");
     printf("\nInitial Cost = %.5f\n", sm_cost(&sm, &ti, &to));
     printf("\n--------------------------------------------\n\n");
 
-    
+    f64 learning_rate = 1e-1;
+    f64 batch_size = ti.rows;
+    for(u64 i = 0; i < 5; ++i) {
+        sm_backprop(&sm, &ti, &to);
+        sm_step(&sm, learning_rate, batch_size);
+    }
+
+    sm_print(&sm, "Final Configuration");
+    printf("\nFinal Cost = %.5f\n", sm_cost(&sm, &ti, &to));
 
     return 0;
 }

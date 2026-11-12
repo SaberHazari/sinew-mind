@@ -22,6 +22,7 @@ typedef uintptr_t uptr;
 
 static inline bool ranges_overlap(const void *x, usize x_length, 
     const void *y, usize y_length) {
+    if(!x_length || !y_length) { return false; }
     const u8 *x_ptr = x, *y_ptr = y;
     return (x_ptr < y_ptr + y_length) && (y_ptr < x_ptr + x_length);
 }
@@ -33,6 +34,10 @@ static inline u64 rotate_left_u64(u64 x, u32 k) {
 
 static inline f64 sigmoid_f64(f64 x) {
     return 1.0 / (1.0 + exp(-x));
+}
+
+static inline f64 sigmoid_diff_f64(f64 x) {
+    return x * (1 - x);
 }
 
 #endif
