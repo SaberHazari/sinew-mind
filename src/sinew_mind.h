@@ -31,6 +31,7 @@ f64 sm_cost(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to);
 void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to);
 void sm_step(SinewMind *sm, f64 learning_rate, f64 batch_size);
 void sm_print(SinewMind *sm, const char *name);
+void sm_free(SinewMind *sm);
 
 #ifdef __cplusplus
 }

@@ -165,3 +165,18 @@ void sm_print(SinewMind *sm, const char *name) {
     }
     printf("]\n");
 }
+
+void sm_free(SinewMind *sm) {
+    matrix_free(&sm->activations[sm->count]);
+    for(u64 i = 0; i < sm->count; ++i) {
+        matrix_free(&sm->activations[i]);
+        matrix_free(&sm->weights[i]);
+        matrix_free(&sm->biases[i]);
+        matrix_free(&sm->deltas[i]);
+        matrix_free(&sm->weight_grads[i]);
+        matrix_free(&sm->bias_grads[i]);
+    }
+    sm->activator = NULL;
+    sm->derivator = NULL;
+    sm->count = 0;
+}
