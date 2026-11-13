@@ -17,8 +17,6 @@
 extern "C" {
 #endif
 
-typedef f64 (*ActivationFn)(f64 x);
-
 typedef struct SM_Matrix SM_Matrix;
 struct SM_Matrix {
     SM_Matrix *parent;
@@ -29,7 +27,7 @@ struct SM_Matrix {
 };
 
 SM_Matrix matrix_alloc(u64 rows, u64 cols);
-void matrix_random(SM_Matrix *mat, SM_Rng *rng, f64 lo, f64 hi);
+void matrix_random(SM_Matrix *mat, SM_Rng *rng, f64 low, f64 high);
 SM_Matrix matrix_subview(SM_Matrix *mat, 
     u64 row_start, u64 row_count, 
     u64 col_start, u64 col_count);
@@ -38,7 +36,6 @@ void matrix_submat(SM_Matrix *sub, SM_Matrix *mat,
     u64 col_start, u64 col_count);
 void matrix_add(SM_Matrix *dest, SM_Matrix *x);
 void matrix_mul(SM_Matrix *dest, SM_Matrix *x, SM_Matrix *y);
-void matrix_activate(SM_Matrix *mat, ActivationFn activator);
 void matrix_print(SM_Matrix *mat, const char *name, u32 padding);
 // This free is temporary until I add a memory arena
 void matrix_free(SM_Matrix *mat);

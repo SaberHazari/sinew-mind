@@ -28,11 +28,11 @@ int main(void) {
     printf("\n--------------------------------------------\n\n");
 
     u64 layers[] = {2, 2, 1};
-    SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sigmoid_f64, 
-        sigmoid_diff_f64);
+    SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sm_activate_sigmoid, 
+        sm_derivative_sigmoid);
     sm_random(&sm, &rng, 0.0, 1.0);
     sm_print(&sm, "Initial Configuration");
-    printf("\nInitial Cost = %.5f\n", sm_cost(&sm, &ti, &to));
+    printf("\nInitial Cost = %.10f\n", sm_cost(&sm, &ti, &to));
     printf("\n--------------------------------------------\n\n");
 
     f64 learning_rate = 1.0;
@@ -43,7 +43,7 @@ int main(void) {
     }
 
     sm_print(&sm, "Final Configuration");
-    printf("\nFinal Cost = %.5f\n", sm_cost(&sm, &ti, &to));
+    printf("\nFinal Cost = %.10f\n", sm_cost(&sm, &ti, &to));
 
     f64 compare_data[8];
     SM_Matrix compare = {

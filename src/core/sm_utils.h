@@ -47,12 +47,4 @@ static inline i64 choice_round_div_i64(i64 x, i64 y, bool ceiling) {
     return q;
 }
 
-static inline f64 sigmoid_f64(f64 x) {
-    return 1.0 / (1.0 + exp(-x));
-}
-
-static inline f64 sigmoid_diff_f64(f64 x) {
-    return x * (1 - x);
-}
-
 #endif

@@ -2,6 +2,68 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+void sm_activate_sigmoid(SM_Matrix *mat) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        for(u64 j = 0; j < mat->cols; ++j) {
+            matrix_pos_ptr_m(mat, i, j) = 1.0 / (1.0 + exp(-matrix_pos_ptr_m(mat, i, j)));
+        }
+    }
+}
+
+void sm_activate_tanh(SM_Matrix *mat) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        for(u64 j = 0; j < mat->cols; ++j) {
+            matrix_pos_ptr_m(mat, i, j) = tanh(matrix_pos_ptr_m(mat, i, j));
+        }
+    }
+}
+
+void sm_activate_relu(SM_Matrix *mat) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        for(u64 j = 0; j < mat->cols; ++j) {
+            if(matrix_pos_ptr_m(mat, i, j) < 0.0) {
+                matrix_pos_ptr_m(mat, i, j) = 0.0;
+            }
+        }
+    }
+}
+
+void sm_activate_linear(SM_Matrix *mat) {
+    (void)mat;
+}
+
+void sm_derivative_sigmoid(SM_Matrix *mat, const SM_Matrix *activation) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        for(u64 j = 0; j < mat->cols; ++j) {
+            f64 act_value = matrix_pos_ptr_m(activation, i, j);
+            matrix_pos_ptr_m(mat, i, j) *= act_value * (1.0 - act_value);
+        }
+    }
+}
+
+void sm_derivative_tanh(SM_Matrix *mat, const SM_Matrix *activation) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        for(u64 j = 0; j < mat->cols; ++j) {
+            f64 act_value = matrix_pos_ptr_m(activation, i, j);
+            matrix_pos_ptr_m(mat, i, j) *= 1.0 - act_value * act_value;
+        }
+    }
+}
+
+void sm_derivative_relu(SM_Matrix *mat, const SM_Matrix *activation) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        for(u64 j = 0; j < mat->cols; ++j) {
+            if(matrix_pos_ptr_m(activation, i, j) <= 0.0) {
+                matrix_pos_ptr_m(mat, i, j) = 0.0;
+            }
+        }
+    }
+}
+
+void sm_derivative_linear(SM_Matrix *mat, const SM_Matrix *activation) {
+    (void)mat; (void)activation;
+}
+
 SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activator, 
     DerivativeFn derivator) {
     assert(layer_count >= 2);
@@ -15,8 +77,11 @@ SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activator,
     sm.deltas = malloc(sm.count * sizeof(*sm.deltas));
     sm.weight_grads = malloc(sm.count * sizeof(*sm.weight_grads));
     sm.bias_grads = malloc(sm.count * sizeof(*sm.bias_grads));
+    sm.activators = malloc(sm.count * sizeof(*sm.activators));
+    sm.derivators = malloc(sm.count * sizeof(*sm.derivators));
     assert(sm.activations && sm.weights && sm.biases && 
-        sm.deltas && sm.weight_grads && sm.bias_grads);
+        sm.deltas && sm.weight_grads && sm.bias_grads && 
+        sm.activators && sm.derivators);
 
     sm.activations[0] = matrix_alloc(1, layers[0]);
     for(u64 l = 1; l < layer_count; ++l) {
@@ -26,17 +91,25 @@ SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activator,
         sm.deltas[l - 1] = matrix_alloc(1, layers[l]);
         sm.weight_grads[l - 1] = matrix_alloc(layers[l - 1], layers[l]);
         sm.bias_grads[l - 1] = matrix_alloc(1, layers[l]);
+        sm.activators[l - 1] = activator;
+        sm.derivators[l - 1] = derivator;
     }
-    sm.activator = activator;
-    sm.derivator = derivator;
 
     return sm;
 }
 
-void sm_random(SinewMind *sm, SM_Rng *rng, f64 lo, f64 hi) {
+void sm_set_layer_activation(SinewMind *sm, u64 layer, ActivationFn activator, 
+    DerivativeFn derivator) {
+    assert(layer < sm->count);
+
+    sm->activators[layer] = activator;
+    sm->derivators[layer] = derivator;
+}
+
+void sm_random(SinewMind *sm, SM_Rng *rng, f64 low, f64 high) {
     for(u64 i = 0; i < sm->count; ++i) {
-        matrix_random(&sm->weights[i], rng, lo, hi);
-        matrix_random(&sm->biases[i], rng, lo, hi);
+        matrix_random(&sm->weights[i], rng, low, high);
+        matrix_random(&sm->biases[i], rng, low, high);
     }
 }
 
@@ -44,7 +117,7 @@ void sm_forward(SinewMind *sm) {
     for(u64 l = 0; l < sm->count; ++l) {
         matrix_mul(&sm->activations[l + 1], &sm->activations[l], &sm->weights[l]);
         matrix_add(&sm->activations[l + 1], &sm->biases[l]);
-        matrix_activate(&sm->activations[l + 1], sm->activator);
+        sm->activators[l](&sm->activations[l + 1]);
     }
 }
 
@@ -97,10 +170,10 @@ void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
 
         SM_Matrix *final_delta = &sm->deltas[sm->count - 1];
         for(u64 o = 0; o < to->cols; ++o) {
-            f64 final_activation_value = matrix_pos_m(sm->activations[sm->count], 0, o);
-            f64 error = final_activation_value - matrix_pos_m(y, 0, o);
-            matrix_pos_ptr_m(final_delta, 0, o) = error * sm->derivator(final_activation_value);
+            matrix_pos_ptr_m(final_delta, 0, o) = matrix_pos_m(sm->activations[sm->count], 0, o) - 
+                matrix_pos_m(y, 0, o);
         }
+        sm->derivators[sm->count - 1](final_delta, &sm->activations[sm->count]);
 
         for(u64 l = sm->count; l >= 1; --l) {
             SM_Matrix *activation = &sm->activations[l - 1];
@@ -129,9 +202,9 @@ void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
                     for(u64 j = 0; j < weight->cols; ++j) {
                         sum += matrix_pos_ptr_m(weight, i, j) * matrix_pos_ptr_m(delta, 0, j);
                     }
-                    f64 prev_activation_value = matrix_pos_ptr_m(activation, 0, i);
-                    matrix_pos_ptr_m(prev_delta, 0, i) = sum * sm->derivator(prev_activation_value);
+                    matrix_pos_ptr_m(prev_delta, 0, i) = sum;
                 }
+                sm->derivators[l - 2](prev_delta, &sm->activations[l - 1]);
             }
         }
     }
@@ -179,7 +252,6 @@ void sm_free(SinewMind *sm) {
     }
     free(sm->activations); free(sm->weights); free(sm->biases);
     free(sm->deltas); free(sm->weight_grads); free(sm->bias_grads); 
-    sm->activator = NULL;
-    sm->derivator = NULL;
+    free(sm->activators); free(sm->derivators);
     sm->count = 0;
 }

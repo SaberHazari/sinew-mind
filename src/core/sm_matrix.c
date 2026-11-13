@@ -43,12 +43,12 @@ SM_Matrix matrix_alloc(u64 rows, u64 cols) {
     return mat;
 }
 
-void matrix_random(SM_Matrix *mat, SM_Rng *rng, f64 lo, f64 hi) {
-    assert(lo < hi);
+void matrix_random(SM_Matrix *mat, SM_Rng *rng, f64 low, f64 high) {
+    assert(low < high);
 
     for(u64 i = 0; i < mat->rows; ++i) {
         for(u64 j = 0; j < mat->cols; ++j) {
-            matrix_pos_ptr_m(mat, i, j) = lo + rng_f64(rng) * (hi - lo);
+            matrix_pos_ptr_m(mat, i, j) = low + rng_f64(rng) * (high - low);
         }
     }
 }
@@ -111,20 +111,12 @@ void matrix_mul(SM_Matrix *dest, SM_Matrix *x, SM_Matrix *y) {
     }
 }
 
-void matrix_activate(SM_Matrix *mat, ActivationFn activator) {
-    for(u64 i = 0; i < mat->rows; ++i) {
-        for(u64 j = 0; j < mat->cols; ++j) {
-            matrix_pos_ptr_m(mat, i, j) = activator(matrix_pos_ptr_m(mat, i, j));
-        }
-    }
-}
-
 void matrix_print(SM_Matrix *mat, const char *name, u32 padding) {
     printf("%*s%s = [\n", padding, "", name);
     for(u64 i = 0; i < mat->rows; ++i) {
         printf("%*s", padding, "");
         for(u64 j = 0; j < mat->cols; ++j) {
-            printf("  %.5f", matrix_pos_ptr_m(mat, i, j));
+            printf("  %.10f", matrix_pos_ptr_m(mat, i, j));
         }
         printf("\n");
     }
