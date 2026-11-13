@@ -1,11 +1,12 @@
 #include "core/sinew_mind.h"
 #include <stdio.h>
 
-#define BITS 2
+#define BITS 5
 
 int main(void) {
     SM_Rng rng;
     u64 seed = rng_seed(&rng);
+    rng_seed_with(&rng, seed);
     printf("\n\nSeed = %" PRIu64 "\n", seed);
 
     u64 n = (1 << BITS);
@@ -27,7 +28,7 @@ int main(void) {
     matrix_print(&ti, "Input", 0);
     printf("\n--------------------------------------------\n\n");
 
-    u64 layers[] = {2 * BITS, 2 * BITS, BITS + 1};
+    u64 layers[] = {2 * BITS, 2 * BITS + 1, BITS + 1};
     SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sigmoid_f64, sigmoid_diff_f64);
     sm_random(&sm, &rng, 0.0, 1.0);
     sm_print(&sm, "Initial Configuration");
@@ -36,7 +37,7 @@ int main(void) {
 
     f64 learning_rate = 1.0;
     f64 batch_size = ti.rows;
-    for(u64 i = 0; i < 100 * 1000; ++i) {
+    for(u64 i = 0; i < 50 * 1000; ++i) {
         sm_backprop(&sm, &ti, &to);
         sm_step(&sm, learning_rate, batch_size);
     }
@@ -60,10 +61,12 @@ int main(void) {
                 u64 out_bit = matrix_pos_m(sm.activations[sm.count], 0, j) > 0.5;
                 out_z |= out_bit << j;
             }
-            printf("%" PRIu64 " + %" PRIu64 " = %" PRIu64 ", Actual Output = %" PRIu64 "\n", x, y, exp_z, out_z);
 
             if(out_z == exp_z) { success++; }
-            else { failure++; }
+            else {
+                failure++;
+                printf("%" PRIu64 " + %" PRIu64 " = %" PRIu64 " != Actual Output: %" PRIu64 "\n", x, y, exp_z, out_z);
+            }
         }
     }
 

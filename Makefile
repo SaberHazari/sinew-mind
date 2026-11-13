@@ -15,7 +15,7 @@ RELEASE_OBJ_DIR = $(RELEASE_DIR)/obj
 # Flags
 COMMON_FLAGS = -Wall -Wextra -std=c17 -I$(SRC_DIR)
 DEBUG_FLAGS = $(COMMON_FLAGS) -g -O0
-RELEASE_FLAGS = $(COMMON_FLAGS) -O2
+RELEASE_FLAGS = $(COMMON_FLAGS) -O3 -march=native -ffast-math
 
 # Sources
 SRCS = $(shell find $(SRC_DIR)/core -type f -name '*.c') $(SRC_DIR)/adder.c

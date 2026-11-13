@@ -11,6 +11,7 @@ f64 xor_train[] = {
 int main(void) {
     SM_Rng rng;
     u64 seed = rng_seed(&rng);
+    rng_seed_with(&rng, seed);
     printf("\n\nSeed = %" PRIu64 "\n", seed);
 
     SM_Matrix td = {
@@ -36,7 +37,7 @@ int main(void) {
 
     f64 learning_rate = 1.0;
     f64 batch_size = ti.rows;
-    for(u64 i = 0; i < 10 * 1000; ++i) {
+    for(u64 i = 0; i < 25 * 1000; ++i) {
         sm_backprop(&sm, &ti, &to);
         sm_step(&sm, learning_rate, batch_size);
     }
