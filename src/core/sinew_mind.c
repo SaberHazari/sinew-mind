@@ -1,6 +1,5 @@
 #include "sinew_mind.h"
 #include <stdlib.h>
-#include <assert.h>
 #include <stdio.h>
 
 SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activator, 
@@ -52,6 +51,7 @@ void sm_forward(SinewMind *sm) {
 // Cost is half MSE here
 f64 sm_cost(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
     assert(ti->rows == to->rows);
+    assert(ti->cols == sm->activations[0].cols);
     assert(to->cols == sm->activations[sm->count].cols);
 
     f64 cost = 0.0;
@@ -73,6 +73,7 @@ f64 sm_cost(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
 
 void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
     assert(ti->rows == to->rows);
+    assert(ti->cols == sm->activations[0].cols);
     assert(to->cols == sm->activations[sm->count].cols);
 
     for(u64 l = 0; l < sm->count; ++l) {
@@ -176,6 +177,8 @@ void sm_free(SinewMind *sm) {
         matrix_free(&sm->weight_grads[i]);
         matrix_free(&sm->bias_grads[i]);
     }
+    free(sm->activations); free(sm->weights); free(sm->biases);
+    free(sm->deltas); free(sm->weight_grads); free(sm->bias_grads); 
     sm->activator = NULL;
     sm->derivator = NULL;
     sm->count = 0;

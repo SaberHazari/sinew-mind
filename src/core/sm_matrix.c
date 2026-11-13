@@ -1,17 +1,35 @@
 #include "sm_matrix.h"
 #include <stdlib.h>
-#include <assert.h>
 #include <stdio.h>
 
 static bool matrix_overlaps_(const SM_Matrix *x, const SM_Matrix *y) {
-    usize x_length = x->rows ? ((x->rows - 1) * x->stride + x->cols) : 0;
-    usize y_length = y->rows ? ((y->rows - 1) * y->stride + y->cols) : 0;
-    return ranges_overlap(x->data, x_length * sizeof(*x->data), 
-        y->data, y_length * sizeof(*y->data));
+    if(!x->rows || !x->cols || !y->rows || !y->cols) {
+        return false;
+    }
+
+    usize x_length = (x->rows - 1) * x->stride + x->cols;
+    usize y_length = (y->rows - 1) * y->stride + y->cols;
+    if(!ranges_overlap(x->data, x_length * sizeof(*x->data), 
+        y->data, y_length * sizeof(*y->data))) {
+        return false;
+    }
+
+    i64 diff = (i64)(y->data - x->data);
+    i64 x_stride = (i64)x->stride, y_stride = (i64)y->stride;
+    i64 x_cols = (i64)x->cols, y_cols = (i64)y->cols;
+    i64 y_last = (i64)y->rows - 1;
+    for(i64 i = 0; i < (i64)x->rows; ++i) {
+        i64 low = choice_round_div_i64(i * x_stride - y_cols + 1 - diff, y_stride, true);
+        i64 high = choice_round_div_i64(i * x_stride + x_cols - 1 - diff, y_stride, false);
+        if(low < 0) { low = 0; }
+        if(high > y_last) { high = y_last; }
+        if(low <= high) { return true; }
+    }
+    return false;
 }
 
 SM_Matrix matrix_alloc(u64 rows, u64 cols) {
-    assert(rows && cols && cols <= UINT64_MAX / rows);
+    assert(rows && cols && cols <= UINT64_MAX / sizeof(f64) / rows);
 
     SM_Matrix mat;
     mat.parent = NULL;
