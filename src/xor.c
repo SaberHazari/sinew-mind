@@ -1,4 +1,5 @@
 #include "core/sinew_mind.h"
+#include <stdlib.h>
 #include <stdio.h>
 
 f64 xor_train[] = {
@@ -8,9 +9,9 @@ f64 xor_train[] = {
     1.0, 1.0, 0.0
 };
 
-int main(void) {
+int main(int argc, char **argv) {
     SM_Rng rng;
-    u64 seed = rng_seed(&rng);
+    u64 seed = argc > 1 ? strtoull(argv[1], NULL, 10) : rng_seed(&rng);
     rng_seed_with(&rng, seed);
     printf("\n\nSeed = %" PRIu64 "\n", seed);
 

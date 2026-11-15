@@ -32,6 +32,27 @@ void sm_activate_linear(SM_Matrix *mat) {
     (void)mat;
 }
 
+void sm_activate_softmax(SM_Matrix *mat) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        f64 max_value = matrix_pos_ptr_m(mat, i, 0);
+        for(u64 j = 1; j < mat->cols; ++j) {
+            f64 value = matrix_pos_ptr_m(mat, i, j);
+            if(value > max_value) { max_value = value; }
+        }
+
+        f64 sum = 0.0;
+        for(u64 j = 0; j < mat->cols; ++j) {
+            f64 exp_diff = exp(matrix_pos_ptr_m(mat, i, j) - max_value);
+            matrix_pos_ptr_m(mat, i, j) = exp_diff;
+            sum += exp_diff;
+        }
+
+        for(u64 j = 0; j < mat->cols; ++j) {
+            matrix_pos_ptr_m(mat, i, j) /= sum;
+        }
+    }
+}
+
 void sm_derivative_sigmoid(SM_Matrix *mat, const SM_Matrix *activation) {
     for(u64 i = 0; i < mat->rows; ++i) {
         for(u64 j = 0; j < mat->cols; ++j) {
@@ -64,6 +85,61 @@ void sm_derivative_linear(SM_Matrix *mat, const SM_Matrix *activation) {
     (void)mat; (void)activation;
 }
 
+void sm_derivative_softmax(SM_Matrix *mat, const SM_Matrix *activation) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        f64 dot = 0.0;
+        for(u64 j = 0; j < mat->cols; ++j) {
+            dot += matrix_pos_ptr_m(activation, i, j) * matrix_pos_ptr_m(mat, i, j);
+        }
+        
+        for(u64 j = 0; j < mat->cols; ++j) {
+            f64 act_value = matrix_pos_ptr_m(activation, i, j);
+            matrix_pos_ptr_m(mat, i, j) = act_value * (matrix_pos_ptr_m(mat, i, j) - dot);
+        }
+    }
+}
+
+// Cost is Half MSE here
+f64 sm_cost_mse(const SM_Matrix *pred, const SM_Matrix *target) {
+    f64 cost = 0.0;
+    for(u64 j = 0; j < pred->cols; ++j) {
+        f64 diff = matrix_pos_ptr_m(pred, 0, j) - matrix_pos_ptr_m(target, 0, j);
+        cost += 0.5 * diff * diff;
+    }
+    return cost;
+}
+
+f64 sm_cost_cross_entropy(const SM_Matrix *pred, const SM_Matrix *target) {
+    const f64 eps = 1e-15;
+    f64 cost = 0.0;
+    for(u64 j = 0; j < pred->cols; ++j) {
+        f64 pred_value = matrix_pos_ptr_m(pred, 0, j);
+        f64 target_value = matrix_pos_ptr_m(target, 0, j);
+        if(pred_value < eps) { pred_value = eps; }
+        else if(pred_value > 1.0 - eps) { pred_value = 1.0 - eps; }
+        cost -= target_value * log(pred_value);
+    }
+    return cost;
+}
+
+void sm_output_delta_mse(SM_Matrix *delta, const SM_Matrix *pred, 
+    const SM_Matrix *target, DerivativeFn derivator) {
+    for(u64 j = 0; j < pred->cols; ++j) {
+        matrix_pos_ptr_m(delta, 0, j) = matrix_pos_ptr_m(pred, 0, j) - 
+            matrix_pos_ptr_m(target, 0, j);
+    }
+    derivator(delta, pred);
+}
+
+void sm_output_delta_softmax_ce(SM_Matrix *delta, const SM_Matrix *pred, 
+    const SM_Matrix *target, DerivativeFn derivator) {
+    (void)derivator;
+    for(u64 j = 0; j < pred->cols; ++j) {
+        matrix_pos_ptr_m(delta, 0, j) = matrix_pos_ptr_m(pred, 0, j) - 
+            matrix_pos_ptr_m(target, 0, j);
+    }
+}
+
 SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activator, 
     DerivativeFn derivator) {
     assert(layer_count >= 2);
@@ -94,6 +170,8 @@ SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activator,
         sm.activators[l - 1] = activator;
         sm.derivators[l - 1] = derivator;
     }
+    sm.cost_fn = sm_cost_mse;
+    sm.output_delta_fn = sm_output_delta_mse;
 
     return sm;
 }
@@ -104,6 +182,11 @@ void sm_set_layer_activation(SinewMind *sm, u64 layer, ActivationFn activator,
 
     sm->activators[layer] = activator;
     sm->derivators[layer] = derivator;
+}
+
+void sm_set_loss(SinewMind *sm, CostFn cost_fn, OutputDeltaFn output_delta_fn) {
+    sm->cost_fn = cost_fn;
+    sm->output_delta_fn = output_delta_fn;
 }
 
 void sm_random(SinewMind *sm, SM_Rng *rng, f64 low, f64 high) {
@@ -121,33 +204,29 @@ void sm_forward(SinewMind *sm) {
     }
 }
 
-// Cost is half MSE here
-f64 sm_cost(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
-    assert(ti->rows == to->rows);
-    assert(ti->cols == sm->activations[0].cols);
-    assert(to->cols == sm->activations[sm->count].cols);
+f64 sm_cost(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
+    assert(input->rows == output->rows);
+    assert(input->cols == sm->activations[0].cols);
+    assert(output->cols == sm->activations[sm->count].cols);
 
     f64 cost = 0.0;
-    for(u64 s = 0; s < ti->rows; ++s) {
-        SM_Matrix x = matrix_row_view_m(*ti, s, 1);
-        SM_Matrix y = matrix_row_view_m(*to, s, 1);
+    for(u64 s = 0; s < input->rows; ++s) {
+        SM_Matrix x = matrix_row_view_m(*input, s, 1);
+        SM_Matrix y = matrix_row_view_m(*output, s, 1);
 
         matrix_copy_m(sm->activations[0], x);
         sm_forward(sm);
 
-        for(u64 o = 0; o < to->cols; ++o) {
-            f64 diff = matrix_pos_m(sm->activations[sm->count], 0, o) - matrix_pos_m(y, 0, o);
-            cost += 0.5 * diff * diff;
-        }
+        cost += sm->cost_fn(&sm->activations[sm->count], &y);
     }
 
-    return cost / ti->rows;
+    return cost / input->rows;
 }
 
-void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
-    assert(ti->rows == to->rows);
-    assert(ti->cols == sm->activations[0].cols);
-    assert(to->cols == sm->activations[sm->count].cols);
+void sm_backprop(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
+    assert(input->rows == output->rows);
+    assert(input->cols == sm->activations[0].cols);
+    assert(output->cols == sm->activations[sm->count].cols);
 
     for(u64 l = 0; l < sm->count; ++l) {
         for(u64 i = 0; i < sm->weight_grads[l].rows; ++i) {
@@ -161,19 +240,16 @@ void sm_backprop(SinewMind *sm, SM_Matrix *ti, SM_Matrix *to) {
         }
     }
 
-    for(u64 s = 0; s < ti->rows; ++s) {
-        SM_Matrix x = matrix_row_view_m(*ti, s, 1);
-        SM_Matrix y = matrix_row_view_m(*to, s, 1);
+    for(u64 s = 0; s < input->rows; ++s) {
+        SM_Matrix x = matrix_row_view_m(*input, s, 1);
+        SM_Matrix y = matrix_row_view_m(*output, s, 1);
 
         matrix_copy_m(sm->activations[0], x);
         sm_forward(sm);
 
         SM_Matrix *final_delta = &sm->deltas[sm->count - 1];
-        for(u64 o = 0; o < to->cols; ++o) {
-            matrix_pos_ptr_m(final_delta, 0, o) = matrix_pos_m(sm->activations[sm->count], 0, o) - 
-                matrix_pos_m(y, 0, o);
-        }
-        sm->derivators[sm->count - 1](final_delta, &sm->activations[sm->count]);
+        sm->output_delta_fn(final_delta, &sm->activations[sm->count], &y, 
+            sm->derivators[sm->count - 1]);
 
         for(u64 l = sm->count; l >= 1; --l) {
             SM_Matrix *activation = &sm->activations[l - 1];

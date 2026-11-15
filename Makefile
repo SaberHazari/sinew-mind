@@ -15,7 +15,7 @@ RELEASE_OBJ_DIR = $(RELEASE_DIR)/obj
 # Flags
 COMMON_FLAGS = -Wall -Wextra -std=c17 -I$(SRC_DIR)
 DEBUG_FLAGS = $(COMMON_FLAGS) -g -O0
-RELEASE_FLAGS = $(COMMON_FLAGS) -O3 -march=native -ffast-math
+RELEASE_FLAGS = $(COMMON_FLAGS) -O3 -march=native -fno-math-errno -fno-trapping-math
 
 # Sources
 SRCS = $(shell find $(SRC_DIR)/core -type f -name '*.c') $(SRC_DIR)/adder.c
@@ -36,9 +36,9 @@ RELEASE_BIN = $(RELEASE_DIR)/sinew_mind
 .PHONY: all run clean debug \
 	debug-run release release-run
 
-all: debug
+all: release
 
-run: debug-run
+run: release-run
 
 clean:
 	@rm -rf $(DEBUG_DIR) $(RELEASE_DIR)
@@ -48,13 +48,13 @@ debug: $(DEBUG_BIN)
 	@echo "Debug build complete: $<"
 
 debug-run: debug
-	@"$(DEBUG_BIN)"
+	@"$(DEBUG_BIN)" $(ARGS)
 
 release: $(RELEASE_BIN)
 	@echo "Release build complete: $<"
 
 release-run: release
-	@"$(RELEASE_BIN)"
+	@"$(RELEASE_BIN)" $(ARGS)
 
 # Directory Creation
 $(DEBUG_DIR) $(RELEASE_DIR):
