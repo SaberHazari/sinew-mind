@@ -57,8 +57,12 @@ void sm_set_loss(SinewMind *sm, CostFn cost_fn, OutputDeltaFn output_delta_fn);
 void sm_random(SinewMind *sm, SM_Rng *rng, f64 low, f64 high);
 void sm_forward(SinewMind *sm);
 f64 sm_cost(SinewMind *sm, SM_Matrix *input, SM_Matrix *output);
+void sm_zero_grads(SinewMind *sm);
+void sm_backprop_accumulate(SinewMind *sm, SM_Matrix *input, SM_Matrix *output);
 void sm_backprop(SinewMind *sm, SM_Matrix *input, SM_Matrix *output);
 void sm_step(SinewMind *sm, f64 learning_rate, f64 batch_size);
+void sm_train(SinewMind *sm, SM_Matrix *input, SM_Matrix *output, SM_Rng *rng, 
+    u64 epochs, u64 batch_size, f64 learning_rate);
 void sm_print(SinewMind *sm, const char *name);
 void sm_free(SinewMind *sm);
 

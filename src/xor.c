@@ -36,12 +36,10 @@ int main(int argc, char **argv) {
     printf("\nInitial Cost = %.10f\n", sm_cost(&sm, &ti, &to));
     printf("\n--------------------------------------------\n\n");
 
-    f64 learning_rate = 1.0;
-    f64 batch_size = ti.rows;
-    for(u64 i = 0; i < 25 * 1000; ++i) {
-        sm_backprop(&sm, &ti, &to);
-        sm_step(&sm, learning_rate, batch_size);
-    }
+    u64 epochs = 2000;
+    u64 batch_size = ti.rows / 2;
+    f64 learning_rate = 10.0 * (f64)batch_size / (f64)ti.rows;
+    sm_train(&sm, &ti, &to, &rng, epochs, batch_size, learning_rate);
 
     sm_print(&sm, "Final Configuration");
     printf("\nFinal Cost = %.10f\n", sm_cost(&sm, &ti, &to));

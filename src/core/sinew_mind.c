@@ -223,11 +223,7 @@ f64 sm_cost(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
     return cost / input->rows;
 }
 
-void sm_backprop(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
-    assert(input->rows == output->rows);
-    assert(input->cols == sm->activations[0].cols);
-    assert(output->cols == sm->activations[sm->count].cols);
-
+void sm_zero_grads(SinewMind *sm) {
     for(u64 l = 0; l < sm->count; ++l) {
         for(u64 i = 0; i < sm->weight_grads[l].rows; ++i) {
             for(u64 j = 0; j < sm->weight_grads[l].cols; ++j) {
@@ -239,6 +235,12 @@ void sm_backprop(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
             matrix_pos_m(sm->bias_grads[l], 0, j) = 0.0;
         }
     }
+}
+
+void sm_backprop_accumulate(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
+    assert(input->rows == output->rows);
+    assert(input->cols == sm->activations[0].cols);
+    assert(output->cols == sm->activations[sm->count].cols);
 
     for(u64 s = 0; s < input->rows; ++s) {
         SM_Matrix x = matrix_row_view_m(*input, s, 1);
@@ -260,9 +262,9 @@ void sm_backprop(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
             SM_Matrix *bias_grad = &sm->bias_grads[l - 1];
 
             for(u64 i = 0; i < weight->rows; ++i) {
-                f64 prev_activation_value = matrix_pos_ptr_m(activation, 0, i);
+                f64 prev_act_value = matrix_pos_ptr_m(activation, 0, i);
                 for(u64 j = 0; j < weight->cols; ++j) {
-                    matrix_pos_ptr_m(weight_grad, i, j) += prev_activation_value * 
+                    matrix_pos_ptr_m(weight_grad, i, j) += prev_act_value * 
                         matrix_pos_ptr_m(delta, 0, j);
                 }
             }
@@ -286,7 +288,11 @@ void sm_backprop(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
     }
 }
 
-// Batch size must equal the training samples used in backpropagation and finding cost
+void sm_backprop(SinewMind *sm, SM_Matrix *input, SM_Matrix *output) {
+    sm_zero_grads(sm);
+    sm_backprop_accumulate(sm, input, output);
+}
+
 void sm_step(SinewMind *sm, f64 learning_rate, f64 batch_size) {
     f64 scale = learning_rate / batch_size;
     for(u64 l = 0; l < sm->count; ++l) {
@@ -302,6 +308,42 @@ void sm_step(SinewMind *sm, f64 learning_rate, f64 batch_size) {
                 matrix_pos_m(sm->bias_grads[l], 0, j);
         }
     }
+}
+
+void sm_train(SinewMind *sm, SM_Matrix *input, SM_Matrix *output, SM_Rng *rng, 
+    u64 epochs, u64 batch_size, f64 learning_rate) {
+    assert(input->rows == output->rows);
+    assert(input->cols == sm->activations[0].cols);
+    assert(output->cols == sm->activations[sm->count].cols);
+    assert(batch_size >= 1);
+
+    u64 sample_size = input->rows;
+    if(batch_size > sample_size) { batch_size = sample_size; }
+
+    u64 *idx_buff = malloc(sample_size * sizeof(*idx_buff));
+    assert(idx_buff);
+
+    for(u64 epoch = 0; epoch < epochs; ++epoch) {
+        for(u64 i = 0; i < sample_size; ++i) { idx_buff[i] = i; }
+        rng_shuffle(rng, idx_buff, sample_size);
+
+        for(u64 current = 0; current < sample_size; current += batch_size) {
+            u64 left = sample_size - current;
+            if(left > batch_size) { left = batch_size; }
+
+            sm_zero_grads(sm);
+            
+            for(u64 j = 0; j < left; ++j) {
+                SM_Matrix x = matrix_row_view_m(*input, idx_buff[current + j], 1);
+                SM_Matrix y = matrix_row_view_m(*output, idx_buff[current + j], 1);
+                sm_backprop_accumulate(sm, &x, &y);
+            }
+
+            sm_step(sm, learning_rate, (f64)left);
+        }
+    }
+
+    free(idx_buff);
 }
 
 void sm_print(SinewMind *sm, const char *name) {
