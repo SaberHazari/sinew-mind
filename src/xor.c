@@ -39,6 +39,7 @@ int main(int argc, char **argv) {
     u64 epochs = 2000;
     u64 batch_size = ti.rows / 2;
     f64 learning_rate = 10.0 * (f64)batch_size / (f64)ti.rows;
+    // No need to split for xor model
     sm_train(&sm, &ti, &to, &rng, epochs, batch_size, learning_rate);
 
     sm_print(&sm, "Final Configuration");
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
         matrix_copy_m(sm.activations[0], x);
         sm_forward(&sm);
 
-        matrix_pos_m(compare, s, 0) = matrix_pos_m(sm.activations[sm.count], 0, 0);
+        matrix_pos_m(compare, s, 0) = matrix_pos_m(sm.activations[sm.model_layers], 0, 0);
         matrix_pos_m(compare, s, 1) = matrix_pos_m(y, 0, 0);
     }
     matrix_print(&compare, "Output [Got | Expected]", 0);

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define BITS 5
+#define BITS 6
 
 int main(int argc, char **argv) {
     SM_Rng rng;
@@ -25,53 +25,26 @@ int main(int argc, char **argv) {
             matrix_pos_m(to, i, j) = (f64)((z >> j) & 1);
         }
     }
-    printf("\n--------------------------------------------\n\n");
-    matrix_print(&ti, "Input", 0);
-    printf("\n--------------------------------------------\n\n");
+    SM_DataSplit split = sm_train_test_split(&ti, &to, &rng, 0.2);
 
     u64 layers[] = {2 * BITS, 2 * BITS + 1, BITS + 1};
     SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sm_activate_sigmoid, 
         sm_derivative_sigmoid);
     sm_random(&sm, &rng, 0.0, 1.0);
-    sm_print(&sm, "Initial Configuration");
-    printf("\nInitial Cost = %.10f\n", sm_cost(&sm, &ti, &to));
+    printf("\nInitial Training Cost = %.10f\n", sm_cost(&sm, &split.x_train, &split.y_train));
     printf("\n--------------------------------------------\n\n");
 
-    u64 epochs = 10 * 1000;
-    u64 batch_size = ti.rows / 10;
-    f64 learning_rate = 5.0 * (f64)batch_size / (f64)ti.rows;
-    sm_train(&sm, &ti, &to, &rng, epochs, batch_size, learning_rate);
+    u64 epochs = 15 * 1000;
+    u64 batch_size = split.x_train.rows / 10;
+    f64 learning_rate = 5.0 * (f64)batch_size / (f64)split.x_train.rows;
+    sm_train(&sm, &split.x_train, &split.y_train, &rng, epochs, batch_size, learning_rate);
 
-    sm_print(&sm, "Final Configuration");
-    printf("\nFinal Cost = %.10f\n", sm_cost(&sm, &ti, &to));
+    printf("\nFinal Training Cost = %.10f\n", sm_cost(&sm, &split.x_train, &split.y_train));
 
-    u64 success = 0, failure = 0;
+    SM_Metrics metrics = sm_test(&sm, &split.x_test, &split.y_test, 0.5, true);
+    sm_metrics_print(&metrics);
 
-    for(u64 x = 0; x < n; ++x) {
-        for(u64 y = 0; y < n; ++y) {
-            for(u64 j = 0; j < BITS; ++j) {
-                matrix_pos_m(sm.activations[0], 0, j) = (x >> j) & 1;
-                matrix_pos_m(sm.activations[0], 0, j + BITS) = (y >> j) & 1;
-            }
-            sm_forward(&sm);
-
-            u64 out_z = 0;
-            u64 exp_z = x + y;
-            for(u64 j = 0; j < to.cols; ++j) {
-                u64 out_bit = matrix_pos_m(sm.activations[sm.count], 0, j) > 0.5;
-                out_z |= out_bit << j;
-            }
-
-            if(out_z == exp_z) { success++; }
-            else {
-                failure++;
-                printf("%" PRIu64 " + %" PRIu64 " = %" PRIu64 " != Actual Output: %" PRIu64 "\n", x, y, exp_z, out_z);
-            }
-        }
-    }
-
-    printf("Accuracy = %.5f\n", (f64)success / (success + failure));
-
+    sm_data_split_free(&split);
     sm_free(&sm);
 
     return 0;
