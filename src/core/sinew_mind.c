@@ -102,8 +102,8 @@ void sm_derivative_softmax(SM_Matrix *mat, const SM_Matrix *activation) {
 // Cost is Half MSE here
 f64 sm_cost_mse(const SM_Matrix *output, const SM_Matrix *target) {
     f64 cost = 0.0;
-    for(u64 j = 0; j < output->cols; ++j) {
-        f64 diff = matrix_pos_ptr_m(output, 0, j) - matrix_pos_ptr_m(target, 0, j);
+    for(u64 o = 0; o < output->cols; ++o) {
+        f64 diff = matrix_pos_ptr_m(output, 0, o) - matrix_pos_ptr_m(target, 0, o);
         cost += 0.5 * diff * diff;
     }
     return cost;
@@ -112,9 +112,9 @@ f64 sm_cost_mse(const SM_Matrix *output, const SM_Matrix *target) {
 f64 sm_cost_cross_entropy(const SM_Matrix *output, const SM_Matrix *target) {
     const f64 eps = 1e-15;
     f64 cost = 0.0;
-    for(u64 j = 0; j < output->cols; ++j) {
-        f64 output_value = matrix_pos_ptr_m(output, 0, j);
-        f64 target_value = matrix_pos_ptr_m(target, 0, j);
+    for(u64 o = 0; o < output->cols; ++o) {
+        f64 output_value = matrix_pos_ptr_m(output, 0, o);
+        f64 target_value = matrix_pos_ptr_m(target, 0, o);
         if(output_value < eps) { output_value = eps; }
         else if(output_value > 1.0 - eps) { output_value = 1.0 - eps; }
         cost -= target_value * log(output_value);
@@ -122,21 +122,45 @@ f64 sm_cost_cross_entropy(const SM_Matrix *output, const SM_Matrix *target) {
     return cost;
 }
 
+f64 sm_cost_binary_cross_entropy(const SM_Matrix *output, const SM_Matrix *target) {
+    const f64 eps = 1e-15;
+    f64 cost = 0.0;
+    for(u64 o = 0; o < output->cols; ++o) {
+        f64 output_value = matrix_pos_ptr_m(output, 0, o);
+        f64 target_value = matrix_pos_ptr_m(target, 0, o);
+        if(output_value < eps) { output_value = eps; }
+        else if(output_value > 1.0 - eps) { output_value = 1.0 - eps; }
+        cost -= target_value * log(output_value) + 
+            (1.0 - target_value) * log(1.0 - output_value);
+    }
+    return cost;
+}
+
 void sm_output_delta_mse(SM_Matrix *delta, const SM_Matrix *output, 
     const SM_Matrix *target, DerivativeFn derivator) {
-    for(u64 j = 0; j < output->cols; ++j) {
-        matrix_pos_ptr_m(delta, 0, j) = matrix_pos_ptr_m(output, 0, j) - 
-            matrix_pos_ptr_m(target, 0, j);
+    for(u64 o = 0; o < output->cols; ++o) {
+        matrix_pos_ptr_m(delta, 0, o) = matrix_pos_ptr_m(output, 0, o) - 
+            matrix_pos_ptr_m(target, 0, o);
     }
     derivator(delta, output);
 }
 
+// These two functions do the same thing but for clarity I kept them both
 void sm_output_delta_softmax_ce(SM_Matrix *delta, const SM_Matrix *output, 
     const SM_Matrix *target, DerivativeFn derivator) {
     (void)derivator;
-    for(u64 j = 0; j < output->cols; ++j) {
-        matrix_pos_ptr_m(delta, 0, j) = matrix_pos_ptr_m(output, 0, j) - 
-            matrix_pos_ptr_m(target, 0, j);
+    for(u64 o = 0; o < output->cols; ++o) {
+        matrix_pos_ptr_m(delta, 0, o) = matrix_pos_ptr_m(output, 0, o) - 
+            matrix_pos_ptr_m(target, 0, o);
+    }
+}
+
+void sm_output_delta_sigmoid_bce(SM_Matrix *delta, const SM_Matrix *output, 
+    const SM_Matrix *target, DerivativeFn derivator) {
+    (void)derivator;
+    for(u64 o = 0; o < output->cols; ++o) {
+        matrix_pos_ptr_m(delta, 0, o) = matrix_pos_ptr_m(output, 0, o) - 
+            matrix_pos_ptr_m(target, 0, o);
     }
 }
 
@@ -390,7 +414,7 @@ void sm_train(SinewMind *sm, SM_Matrix *x_train, SM_Matrix *y_train, SM_Rng *rng
     free(idx_buff);
 }
 
-static bool sm_output_is_correct_(const SM_Matrix *output, const SM_Matrix *target, 
+static bool sm_output_is_correct_regression_(const SM_Matrix *output, const SM_Matrix *target, 
     u64 output_dim, f64 threshold) {
     for(u64 o = 0; o < output_dim; ++o) {
         f64 output_value = matrix_pos_ptr_m(output, 0, o);
@@ -416,21 +440,48 @@ static bool sm_output_is_correct_binary_(const SM_Matrix *output, const SM_Matri
     return true;
 }
 
+static bool sm_output_is_correct_multiclass_(const SM_Matrix *output, const SM_Matrix *target, 
+    u64 output_dim) {
+    u64 output_idx = 0;
+    u64 target_idx = 0;
+    f64 output_max = matrix_pos_ptr_m(output, 0, 0);
+    f64 target_max = matrix_pos_ptr_m(target, 0, 0);
+
+    for(u64 o = 1; o < output_dim; ++o) {
+        f64 output_value = matrix_pos_ptr_m(output, 0, o);
+        f64 target_value = matrix_pos_ptr_m(target, 0, o);
+        if(output_value > output_max) {
+            output_max = output_value;
+            output_idx = o;
+        }
+        if(target_value > target_max) {
+            target_max = target_value;
+            target_idx = o;
+        }
+    }
+    return output_idx == target_idx;
+}
+
 SM_Metrics sm_test(SinewMind *sm, SM_Matrix *x_test, SM_Matrix *y_test, 
-    f64 threshold, bool is_binary) {
+    f64 threshold, SM_TaskType task) {
     assert(x_test->rows > 0);
     assert(x_test->rows == y_test->rows);
     assert(x_test->cols == sm->activations[0].cols);
     assert(y_test->cols == sm->activations[sm->model_layers].cols);
+    assert(task >= 0 && task < SM_TASK_COUNT);
 
     u64 test_size = x_test->rows;
     u64 output_dim = y_test->cols;
+
+    f64 *y_mean = calloc(output_dim, sizeof(*y_mean));
+    f64 *y_m2 = calloc(output_dim, sizeof(*y_m2));
+    f64 *res_sq = calloc(output_dim, sizeof(*res_sq));
+    assert(y_mean && y_m2 && res_sq);
 
     SM_Metrics metrics = {0};
     metrics.total = test_size;
 
     f64 total_cost = 0.0;
-    f64 total_sq = 0.0;
     f64 total_abs = 0.0;
 
     for(u64 s = 0; s < test_size; ++s) {
@@ -443,26 +494,62 @@ SM_Metrics sm_test(SinewMind *sm, SM_Matrix *x_test, SM_Matrix *y_test,
         SM_Matrix *output = &sm->activations[sm->model_layers];
         total_cost += sm->cost_fn(output, &y);
 
+        f64 count = (f64)(s + 1);
         for(u64 o = 0; o < output_dim; ++o) {
-            f64 diff = matrix_pos_ptr_m(output, 0, o) - matrix_pos_m(y, 0, o);
-            total_sq += diff * diff;
+            f64 output_value = matrix_pos_ptr_m(output, 0, o);
+            f64 target_value = matrix_pos_m(y, 0, o);
+            f64 diff = output_value - target_value;
+            res_sq[o] += diff * diff;
             total_abs += fabs(diff);
+
+            f64 delta = target_value - y_mean[o];
+            y_mean[o] += delta / count;
+            y_m2[o] += delta * (target_value - y_mean[o]);
         }
 
         bool correct;
-        if(is_binary) {
-            correct = sm_output_is_correct_binary_(output, &y, output_dim, threshold);
-        } else {
-            correct = sm_output_is_correct_(output, &y, output_dim, threshold);
+        switch(task) {
+            case SM_TASK_REGRESSION: {
+                correct = sm_output_is_correct_regression_(output, &y, output_dim, threshold);
+            } break;
+            case SM_TASK_BINARY: {
+                correct = sm_output_is_correct_binary_(output, &y, output_dim, threshold);
+            } break;
+            case SM_TASK_MULTICLASS: {
+                correct = sm_output_is_correct_multiclass_(output, &y, output_dim);
+                (void)threshold;
+            } break;
+            default: {
+
+            } break;
         }
         if(correct) { metrics.correct++; }
     }
 
+    f64 total_sq = 0.0;
+    f64 r2_sum = 0.0;
+    for(u64 o = 0; o < output_dim; ++o) {
+        total_sq += res_sq[o];
+
+        f64 ss_tot = y_m2[o];
+        f64 ss_res = res_sq[o];
+        f64 r2_o;
+        if(ss_tot <= 0.0) {
+            r2_o = (ss_res <= 0) ? 1.0 : 0.0;
+        } else {
+            r2_o = 1.0 - ss_res / ss_tot;
+        }
+        r2_sum += r2_o;
+    }
+
     metrics.cost = total_cost / (f64)metrics.total;
+    metrics.r2 = r2_sum / (f64)output_dim;
     metrics.mse = total_sq / (f64)(metrics.total * output_dim);
     metrics.rmse = sqrt(metrics.mse);
     metrics.mae = total_abs / (f64)(metrics.total * output_dim);
     metrics.accuracy = (f64)metrics.correct / (f64)metrics.total;
+
+    free(y_mean); free(y_m2); free(res_sq);
 
     return metrics;
 }
@@ -483,6 +570,7 @@ void sm_metrics_print(SM_Metrics *metrics) {
     printf("\n\n<----------MODEL METRICS---------->\n");
     printf("Total Test Samples = %" PRIu64 "\n", metrics->total);
     printf("Correctly Predicted = %" PRIu64 "\n", metrics->correct);
+    printf("R2 = %.10f\n", metrics->r2);
     printf("Accuracy = %.10f%%\n", metrics->accuracy * 100.0);
     printf("MSE = %.10f\n", metrics->mse);
     printf("RMSE = %.10f\n", metrics->rmse);

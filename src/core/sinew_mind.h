@@ -15,6 +15,11 @@ typedef f64 (*CostFn)(const SM_Matrix *output, const SM_Matrix *target);
 typedef void (*OutputDeltaFn)(SM_Matrix *delta, const SM_Matrix *output, 
     const SM_Matrix *target, DerivativeFn derivator);
 
+typedef enum SM_TaskType {
+    SM_TASK_REGRESSION = 0, SM_TASK_BINARY, 
+    SM_TASK_MULTICLASS, SM_TASK_COUNT
+} SM_TaskType;
+
 typedef struct SinewMind {
     u64 model_layers;
     SM_Matrix *activations;
@@ -38,6 +43,7 @@ typedef struct SM_DataSplit {
 
 typedef struct SM_Metrics {
     f64 cost;
+    f64 r2;
     f64 mse;
     f64 rmse;
     f64 mae;
@@ -60,10 +66,13 @@ void sm_derivative_softmax(SM_Matrix *mat, const SM_Matrix *activation);
 
 f64 sm_cost_mse(const SM_Matrix *output, const SM_Matrix *target);
 f64 sm_cost_cross_entropy(const SM_Matrix *output, const SM_Matrix *target);
+f64 sm_cost_binary_cross_entropy(const SM_Matrix *output, const SM_Matrix *target);
 
 void sm_output_delta_mse(SM_Matrix *delta, const SM_Matrix *output, 
     const SM_Matrix *target, DerivativeFn derivator);
 void sm_output_delta_softmax_ce(SM_Matrix *delta, const SM_Matrix *output, 
+    const SM_Matrix *target, DerivativeFn derivator);
+void sm_output_delta_sigmoid_bce(SM_Matrix *delta, const SM_Matrix *output, 
     const SM_Matrix *target, DerivativeFn derivator);
 
 SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activator, 
@@ -83,7 +92,7 @@ void sm_step(SinewMind *sm, f64 learning_rate, f64 batch_size);
 void sm_train(SinewMind *sm, SM_Matrix *x_train, SM_Matrix *y_train, SM_Rng *rng, 
     u64 epochs, u64 batch_size, f64 learning_rate);
 SM_Metrics sm_test(SinewMind *sm, SM_Matrix *x_test, SM_Matrix *y_test, 
-    f64 threshold, bool is_binary);
+    f64 threshold, SM_TaskType task);
 void sm_print(SinewMind *sm, const char *name);
 void sm_metrics_print(SM_Metrics *metrics);
 void sm_data_split_free(SM_DataSplit *split);

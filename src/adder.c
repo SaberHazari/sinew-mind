@@ -1,4 +1,4 @@
-#include "core/sinew_mind.h"
+#include "core/sm_models.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -26,11 +26,10 @@ int main(int argc, char **argv) {
         }
     }
     SM_DataSplit split = sm_train_test_split(&ti, &to, &rng, 0.2);
-
-    u64 layers[] = {2 * BITS, 2 * BITS + 1, BITS + 1};
-    SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sm_activate_sigmoid, 
-        sm_derivative_sigmoid);
-    sm_random(&sm, &rng, 0.0, 1.0);
+    
+    u64 hidden_layers[] = {2 * BITS + 1};
+    u64 hidden_count = 1;
+    SinewMind sm = sm_mlp_regressor_default(hidden_layers, hidden_count, 2 * BITS, BITS + 1, &rng);
     printf("\nInitial Training Cost = %.10f\n", sm_cost(&sm, &split.x_train, &split.y_train));
     printf("\n--------------------------------------------\n\n");
 
@@ -41,7 +40,7 @@ int main(int argc, char **argv) {
 
     printf("\nFinal Training Cost = %.10f\n", sm_cost(&sm, &split.x_train, &split.y_train));
 
-    SM_Metrics metrics = sm_test(&sm, &split.x_test, &split.y_test, 0.5, true);
+    SM_Metrics metrics = sm_test(&sm, &split.x_test, &split.y_test, 0.5, SM_TASK_BINARY);
     sm_metrics_print(&metrics);
 
     sm_data_split_free(&split);
