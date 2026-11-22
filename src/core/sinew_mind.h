@@ -80,7 +80,7 @@ SinewMind sm_alloc(u64 *layers, u64 layer_count, ActivationFn activator,
 void sm_set_layer_activation(SinewMind *sm, u64 layer, ActivationFn activator, 
     DerivativeFn derivator);
 void sm_set_loss(SinewMind *sm, CostFn cost_fn, OutputDeltaFn output_delta_fn);
-void sm_random(SinewMind *sm, SM_Rng *rng, f64 low, f64 high);
+void sm_assign(SinewMind *sm, SM_Rng *rng, f64 low, f64 high);
 void sm_forward(SinewMind *sm);
 SM_DataSplit sm_train_test_split(SM_Matrix *input, SM_Matrix *target, 
     SM_Rng *rng, f64 test_fraction);

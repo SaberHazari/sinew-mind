@@ -214,10 +214,10 @@ void sm_set_loss(SinewMind *sm, CostFn cost_fn, OutputDeltaFn output_delta_fn) {
     sm->output_delta_fn = output_delta_fn;
 }
 
-void sm_random(SinewMind *sm, SM_Rng *rng, f64 low, f64 high) {
+void sm_assign(SinewMind *sm, SM_Rng *rng, f64 low, f64 high) {
     for(u64 i = 0; i < sm->model_layers; ++i) {
         matrix_random(&sm->weights[i], rng, low, high);
-        matrix_random(&sm->biases[i], rng, low, high);
+        matrix_fill(&sm->biases[i], 0.0);
     }
 }
 

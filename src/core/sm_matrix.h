@@ -27,6 +27,7 @@ struct SM_Matrix {
 };
 
 SM_Matrix matrix_alloc(u64 rows, u64 cols);
+void matrix_fill(SM_Matrix *mat, f64 fill_value);
 void matrix_random(SM_Matrix *mat, SM_Rng *rng, f64 low, f64 high);
 SM_Matrix matrix_subview(SM_Matrix *mat, 
     u64 row_start, u64 row_count, 

@@ -27,15 +27,16 @@ int main(int argc, char **argv) {
     }
     SM_DataSplit split = sm_train_test_split(&ti, &to, &rng, 0.2);
     
-    u64 hidden_layers[] = {2 * BITS + 2};
-    u64 hidden_count = 1;
-    SinewMind sm = sm_mlp_logistic_classifier_default(hidden_layers, hidden_count, 2 * BITS, BITS + 1, &rng);
+    u64 hidden_layers[] = {6 * BITS, 6 * BITS};
+    u64 hidden_count = 2;
+    SinewMind sm = sm_mlp_logistic_classifier(hidden_layers, hidden_count, 2 * BITS, BITS + 1, 
+        sm_activate_tanh, sm_derivative_tanh, &rng);
     printf("\nInitial Training Cost = %.10f\n", sm_cost(&sm, &split.x_train, &split.y_train));
     printf("\n--------------------------------------------\n\n");
 
-    u64 epochs = 15 * 1000;
+    u64 epochs = 5 * 1000;
     u64 batch_size = split.x_train.rows / 10;
-    f64 learning_rate = 5.0 * (f64)batch_size / (f64)split.x_train.rows;
+    f64 learning_rate = 0.2 * (f64)batch_size / (f64)split.x_train.rows;
     sm_train(&sm, &split.x_train, &split.y_train, &rng, epochs, batch_size, learning_rate);
 
     printf("\nFinal Training Cost = %.10f\n", sm_cost(&sm, &split.x_train, &split.y_train));

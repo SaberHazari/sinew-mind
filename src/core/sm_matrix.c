@@ -17,6 +17,14 @@ SM_Matrix matrix_alloc(u64 rows, u64 cols) {
     return mat;
 }
 
+void matrix_fill(SM_Matrix *mat, f64 fill_value) {
+    for(u64 i = 0; i < mat->rows; ++i) {
+        for(u64 j = 0; j < mat->cols; ++j) {
+            matrix_pos_ptr_m(mat, i, j) = fill_value;
+        }
+    }
+}
+
 void matrix_random(SM_Matrix *mat, SM_Rng *rng, f64 low, f64 high) {
     assert(low < high);
 

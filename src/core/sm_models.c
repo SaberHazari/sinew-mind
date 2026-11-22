@@ -36,7 +36,7 @@ SinewMind sm_linear_regressor(u64 input_dim, u64 output_dim, SM_Rng *rng) {
     sm_set_loss(&sm, sm_cost_mse, sm_output_delta_mse);
 
     f64 scale = sm_models_init_scale_(input_dim);
-    sm_random(&sm, rng, -scale, scale);
+    sm_assign(&sm, rng, -scale, scale);
     return sm;
 }
 
@@ -48,7 +48,7 @@ SinewMind sm_logistic_regressor(u64 input_dim, u64 output_dim, SM_Rng *rng) {
     sm_set_loss(&sm, sm_cost_binary_cross_entropy, sm_output_delta_sigmoid_bce);
 
     f64 scale = sm_models_init_scale_(input_dim);
-    sm_random(&sm, rng, -scale, scale);
+    sm_assign(&sm, rng, -scale, scale);
     return sm;
 }
 
@@ -59,7 +59,7 @@ SinewMind sm_softmax_regressor(u64 input_dim, u64 output_dim, SM_Rng *rng) {
     sm_set_loss(&sm, sm_cost_cross_entropy, sm_output_delta_softmax_ce);
 
     f64 scale = sm_models_init_scale_(input_dim);
-    sm_random(&sm, rng, -scale, scale);
+    sm_assign(&sm, rng, -scale, scale);
     return sm;
 }
 
@@ -75,7 +75,7 @@ SinewMind sm_mlp_regressor(u64 *hidden_layers, u64 hidden_count, u64 input_dim,
 
     f64 scale = sm_models_init_scale_(
         sm_models_max_fan_(input_dim, hidden_layers, hidden_count));
-    sm_random(&sm, rng, -scale, scale);
+    sm_assign(&sm, rng, -scale, scale);
     return sm;
 }
 
@@ -91,7 +91,7 @@ SinewMind sm_mlp_logistic_classifier(u64 *hidden_layers, u64 hidden_count, u64 i
 
     f64 scale = sm_models_init_scale_(
         sm_models_max_fan_(input_dim, hidden_layers, hidden_count));
-    sm_random(&sm, rng, -scale, scale);
+    sm_assign(&sm, rng, -scale, scale);
     return sm;
 }
 
@@ -107,7 +107,7 @@ SinewMind sm_mlp_softmax_classifier(u64 *hidden_layers, u64 hidden_count, u64 in
 
     f64 scale = sm_models_init_scale_(
         sm_models_max_fan_(input_dim, hidden_layers, hidden_count));
-    sm_random(&sm, rng, -scale, scale);
+    sm_assign(&sm, rng, -scale, scale);
     return sm;
 }
 

@@ -31,12 +31,12 @@ int main(int argc, char **argv) {
     u64 layers[] = {2, 2, 1};
     SinewMind sm = sm_alloc(layers, array_length_u64_m(layers), sm_activate_sigmoid, 
         sm_derivative_sigmoid);
-    sm_random(&sm, &rng, 0.0, 1.0);
+    sm_assign(&sm, &rng, 0.0, 1.0);
     sm_print(&sm, "Initial Configuration");
     printf("\nInitial Cost = %.10f\n", sm_cost(&sm, &ti, &to));
     printf("\n--------------------------------------------\n\n");
 
-    u64 epochs = 2000;
+    u64 epochs = 3 * 1000;
     u64 batch_size = ti.rows / 2;
     f64 learning_rate = 10.0 * (f64)batch_size / (f64)ti.rows;
     // No need to split for xor model
