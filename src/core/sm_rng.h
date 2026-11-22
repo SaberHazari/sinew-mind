@@ -70,7 +70,7 @@ static inline f64 rng_f64(SM_Rng *rng) {
 
 static inline void rng_shuffle(SM_Rng *rng, u64 *array, u64 length) {
     for(u64 i = length; i-- > 1;) {
-        u64 j = rng_next(rng) % i;
+        u64 j = rng_next(rng) % (i + 1);
         u64 temp = array[i];
         array[i] = array[j];
         array[j] = temp;

@@ -1,4 +1,5 @@
 #include "sinew_mind.h"
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -507,7 +508,7 @@ SM_Metrics sm_test(SinewMind *sm, SM_Matrix *x_test, SM_Matrix *y_test,
             y_m2[o] += delta * (target_value - y_mean[o]);
         }
 
-        bool correct;
+        bool correct = false;
         switch(task) {
             case SM_TASK_REGRESSION: {
                 correct = sm_output_is_correct_regression_(output, &y, output_dim, threshold);
@@ -596,7 +597,7 @@ void sm_free(SinewMind *sm) {
         matrix_free(&sm->bias_grads[i]);
     }
     free(sm->activations); free(sm->weights); free(sm->biases);
-    free(sm->deltas); free(sm->weight_grads); free(sm->bias_grads); 
+    free(sm->deltas); free(sm->weight_grads); free(sm->bias_grads);
     free(sm->activators); free(sm->derivators);
-    sm->model_layers = 0;
+    memset(sm, 0, sizeof(*sm));
 }

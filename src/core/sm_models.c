@@ -79,8 +79,52 @@ SinewMind sm_mlp_regressor(u64 *hidden_layers, u64 hidden_count, u64 input_dim,
     return sm;
 }
 
+SinewMind sm_mlp_logistic_classifier(u64 *hidden_layers, u64 hidden_count, u64 input_dim, 
+    u64 output_dim, ActivationFn activator, DerivativeFn derivator, SM_Rng *rng) {
+    assert(input_dim >= 1 && output_dim >= 1);
+
+    SinewMind sm = sm_models_build_(input_dim, hidden_layers, hidden_count, 
+        output_dim, activator, derivator);
+    sm_set_layer_activation(&sm, sm.model_layers - 1, sm_activate_sigmoid, 
+        sm_derivative_sigmoid);
+    sm_set_loss(&sm, sm_cost_binary_cross_entropy, sm_output_delta_sigmoid_bce);
+
+    f64 scale = sm_models_init_scale_(
+        sm_models_max_fan_(input_dim, hidden_layers, hidden_count));
+    sm_random(&sm, rng, -scale, scale);
+    return sm;
+}
+
+SinewMind sm_mlp_softmax_classifier(u64 *hidden_layers, u64 hidden_count, u64 input_dim, 
+    u64 output_dim, ActivationFn activator, DerivativeFn derivator, SM_Rng *rng) {
+    assert(input_dim >= 1 && output_dim >= 2);
+
+    SinewMind sm = sm_models_build_(input_dim, hidden_layers, hidden_count, 
+        output_dim, activator, derivator);
+    sm_set_layer_activation(&sm, sm.model_layers - 1, sm_activate_softmax, 
+        sm_derivative_softmax);
+    sm_set_loss(&sm, sm_cost_cross_entropy, sm_output_delta_softmax_ce);
+
+    f64 scale = sm_models_init_scale_(
+        sm_models_max_fan_(input_dim, hidden_layers, hidden_count));
+    sm_random(&sm, rng, -scale, scale);
+    return sm;
+}
+
 SinewMind sm_mlp_regressor_default(u64 *hidden_layers, u64 hidden_count, u64 input_dim, 
     u64 output_dim, SM_Rng *rng) {
     return sm_mlp_regressor(hidden_layers, hidden_count, input_dim, output_dim, 
+        sm_activate_relu, sm_derivative_relu, rng);
+}
+
+SinewMind sm_mlp_logistic_classifier_default(u64 *hidden_layers, u64 hidden_count, u64 input_dim, 
+    u64 output_dim, SM_Rng *rng) {
+    return sm_mlp_logistic_classifier(hidden_layers, hidden_count, input_dim, output_dim, 
+        sm_activate_relu, sm_derivative_relu, rng);
+}
+
+SinewMind sm_mlp_softmax_classifier_default(u64 *hidden_layers, u64 hidden_count, u64 input_dim, 
+    u64 output_dim, SM_Rng *rng) {
+    return sm_mlp_softmax_classifier(hidden_layers, hidden_count, input_dim, output_dim, 
         sm_activate_relu, sm_derivative_relu, rng);
 }

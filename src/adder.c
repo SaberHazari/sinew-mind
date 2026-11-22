@@ -27,9 +27,9 @@ int main(int argc, char **argv) {
     }
     SM_DataSplit split = sm_train_test_split(&ti, &to, &rng, 0.2);
     
-    u64 hidden_layers[] = {2 * BITS + 1};
+    u64 hidden_layers[] = {2 * BITS + 2};
     u64 hidden_count = 1;
-    SinewMind sm = sm_mlp_regressor_default(hidden_layers, hidden_count, 2 * BITS, BITS + 1, &rng);
+    SinewMind sm = sm_mlp_logistic_classifier_default(hidden_layers, hidden_count, 2 * BITS, BITS + 1, &rng);
     printf("\nInitial Training Cost = %.10f\n", sm_cost(&sm, &split.x_train, &split.y_train));
     printf("\n--------------------------------------------\n\n");
 
