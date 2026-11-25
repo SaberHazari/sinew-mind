@@ -18,7 +18,11 @@ DEBUG_FLAGS = $(COMMON_FLAGS) -g -O0
 RELEASE_FLAGS = $(COMMON_FLAGS) -O3 -march=x86-64-v3 -fno-math-errno -fno-trapping-math
 
 # Sources
-SRCS = $(shell find $(SRC_DIR)/core -type f -name '*.c') $(SRC_DIR)/adder.c
+SRCS = $(shell find $(SRC_DIR)/base -type f -name '*.c') \
+	$(shell find $(SRC_DIR)/math -type f -name '*.c') \
+	$(shell find $(SRC_DIR)/framework -type f -name '*.c') \
+	$(shell find $(SRC_DIR)/file_io -type f -name '*.c') \
+	$(SRC_DIR)/adder.c
 
 # Objects
 DEBUG_OBJS = $(patsubst $(SRC_DIR)/%.c, $(DEBUG_OBJ_DIR)/%.o, $(SRCS))

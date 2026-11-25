@@ -1,4 +1,4 @@
-#include "core/sinew_mind.h"
+#include "framework/sinew_mind.h"
 #include <stdlib.h>
 #include <stdio.h>
 

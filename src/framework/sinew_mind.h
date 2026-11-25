@@ -1,9 +1,9 @@
 #ifndef SINEW_MIND_H
 #define SINEW_MIND_H
 
-#include "sm_utils.h"
-#include "sm_rng.h"
-#include "sm_matrix.h"
+#include "base/sm_utils.h"
+#include "math/sm_rng.h"
+#include "math/sm_matrix.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,4 +1,4 @@
-#include "core/sm_models.h"
+#include "framework/sm_models.h"
 #include <stdlib.h>
 #include <stdio.h>
 

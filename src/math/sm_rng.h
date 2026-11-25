@@ -1,8 +1,8 @@
 #ifndef SM_RNG_H
 #define SM_RNG_H
 
-#include "sm_utils.h"
-#include "sm_platform.h"
+#include "base/sm_utils.h"
+#include "base/sm_platform.h"
 #include <time.h>
 
 typedef struct SM_Rng {

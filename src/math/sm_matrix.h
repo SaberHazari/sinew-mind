@@ -1,7 +1,7 @@
 #ifndef SM_MATRIX_H
 #define SM_MATRIX_H
 
-#include "sm_utils.h"
+#include "base/sm_utils.h"
 #include "sm_rng.h"
 
 #define matrix_pos_m(mat, i, j) ((mat).data[(i) * (mat).stride + (j)])
@@ -23,7 +23,7 @@ struct SM_Matrix {
     u64 rows;
     u64 cols;
     u64 stride;
-    f64 *data;
+    f32 *data;
 };
 
 SM_Matrix matrix_alloc(u64 rows, u64 cols);

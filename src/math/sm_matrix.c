@@ -107,11 +107,11 @@ void matrix_mul(SM_Matrix *dest, SM_Matrix *x, SM_Matrix *y) {
     assert(!matrix_overlaps_(dest, y));
     
     for(u64 i = 0; i < dest->rows; ++i) {
-        f64 *dest_i_row = &dest->data[i * dest->stride];
+        f32 *dest_i_row = &dest->data[i * dest->stride];
         for(u64 j = 0; j < dest->cols; ++j) { dest_i_row[j] = 0; }
         for(u64 k = 0; k < x->cols; ++k) {
-            f64 x_ik = matrix_pos_ptr_m(x, i, k);
-            f64 *y_k_row = &y->data[k * y->stride];
+            f32 x_ik = matrix_pos_ptr_m(x, i, k);
+            f32 *y_k_row = &y->data[k * y->stride];
             for(u64 j = 0; j < dest->cols; ++j) {
                 dest_i_row[j] += x_ik * y_k_row[j];
             }
@@ -124,7 +124,7 @@ void matrix_print(SM_Matrix *mat, const char *name, u32 padding) {
     for(u64 i = 0; i < mat->rows; ++i) {
         printf("%*s", padding, "");
         for(u64 j = 0; j < mat->cols; ++j) {
-            printf("  %.10f", matrix_pos_ptr_m(mat, i, j));
+            printf("  %.7f", matrix_pos_ptr_m(mat, i, j));
         }
         printf("\n");
     }
